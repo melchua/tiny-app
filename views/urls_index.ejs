@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <% include partials/_header %>
+</head>
+<body>
+  <ul>
+    <% for (url in urls) { %>
+    <li>
+      <%= url %>: <%= urls[url] %>: <a href="#"> shortened link space </a>
+    </li>
+    <% } %>
+  </ul>
+</body>
+</html>
+
