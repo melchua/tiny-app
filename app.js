@@ -68,6 +68,31 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+// DELETE
+app.post("/urls/:shortURL/delete", (req, res) => {
+  // 1. Find target you want to delete
+  targetURL = req.params.shortURL;
+  // 2. Delete (use object delete operator)
+  delete urlDatabase[targetURL];
+  // 3. Send response to redirect to the listing page
+  res.redirect("/urls");
+
+});
+
+// EDIT
+app.post("/urls/:shortURL", (req, res) => {
+  // 1. Find target you want to edit
+  targetURL = req.params.shortURL;
+  // 2. Save long URL from body
+  repURL = req.body.longURL;
+  // 3. replace
+  urlDatabase[targetURL] = repURL;
+  // 4. Send response to redirect to the listing page
+  res.redirect("/urls");
+
+});
+
+
 app.listen(PORT, () => {
   console.log(`Example app listening on ${PORT}!`);
 });
