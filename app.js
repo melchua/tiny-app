@@ -111,11 +111,6 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
-app.get("/register", (req, res) => {
-
-  res.render("usr_regisration");
-});
-
 app.listen(PORT, () => {
   console.log(`Example app listening on ${PORT}!`);
 });
