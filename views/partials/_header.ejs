@@ -1,11 +1,20 @@
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
 <title>Tiny App </title>
-<form method="POST" action="/login">
-  <h1>Login</h1>
-  <label for="login">Username: </label>
-    <input type="text" name="username" id="login">
-    <button type="submit">Sign in</button>
-  </label>
-</form>
-<hr>
+
+<% if(username) { %>
+    <h4>Curent User: <%= username %></h4>
+    <form method="POST" action="/logout">
+      <button type="submit">Logout</button>
+    </form>
+<% } else {%>
+    <form method="POST" action="/login">
+      <h1>Login</h1>
+      <label for="login">Username: </label>
+        <input type="text" name="username" id="login">
+        <button type="submit">Sign in</button>
+      </label>
+    </form>
+
+    <hr>
+<% }%>
