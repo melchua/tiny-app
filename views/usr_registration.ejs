@@ -4,9 +4,9 @@
   <% include partials/_header %>
 </head>
 <body>
-  <h1>SHORT:URL: <%= shortURL %> </h1>
+  <h1>User Registration</h1>
 
-  <form method="POST" action="/urls/<%= shortURL %>/edit">
+  <form method="GET" action="">
     <label for="longURL">Long URL</label>
       <input type="text" value="<%= longURL %>" id="longURL" name="longURL">
     <button type="submit">UPDATE</button>

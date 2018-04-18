@@ -86,7 +86,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 // EDIT
-app.post("/urls/:shortURL", (req, res) => {
+app.post("/urls/:shortURL/edit", (req, res) => {
   // 1. Find target you want to edit
   targetURL = req.params.shortURL;
   // 2. Save long URL from body
@@ -109,6 +109,11 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   res.clearCookie("username");
   res.redirect("/urls");
+});
+
+app.get("/register", (req, res) => {
+
+  res.render("usr_regisration");
 });
 
 app.listen(PORT, () => {

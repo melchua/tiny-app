@@ -10,11 +10,11 @@
       <%= url %> &#8594; <a href="<%= urls[url] %>"><%= urls[url] %></a>
 
       <form method="GET" action="/urls/<%= url %>">
-        <button type="submit">EDIT</button>
+        <button type="submit" class="btn btn-default">EDIT</button>
       </form>
 
       <form method="POST" action="/urls/<%= url %>/delete">
-        <button type="submit">DELETE</button>
+        <button type="submit" class="btn btn-default">DELETE</button>
       </form>
     </li>
     <% } %>
