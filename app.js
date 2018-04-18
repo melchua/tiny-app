@@ -3,9 +3,13 @@ const express = require("express");
 const app = express(); // does this run it here?
 const PORT = process.env.PORT || 8080; // default 8080
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 app.set("view engine", "ejs");
+
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -88,6 +92,15 @@ app.post("/urls/:shortURL", (req, res) => {
   // 3. replace
   urlDatabase[targetURL] = repURL;
   // 4. Send response to redirect to the listing page
+  res.redirect("/urls");
+});
+
+app.post("/login", (req, res) => {
+  // 1. set cookie named username to value submitted in login form (res.cookie)
+  // console.log(req.body);
+  let username = req.body.username;
+  res.cookie('username', username);
+  // 2. redirect back to /urls
   res.redirect("/urls");
 });
 
