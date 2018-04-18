@@ -4,12 +4,17 @@
   <% include partials/_header %>
 </head>
 <body>
-  <ul>
+  <ul class="list-group">
     <% for (url in urls) { %>
-    <li>
+    <li class="list-group-item">
       <%= url %> &#8594; <a href="<%= urls[url] %>"><%= urls[url] %></a>
+
+      <form method="GET" action="/urls/<%= url %>">
+        <button type="submit">EDIT</button>
+      </form>
+
       <form method="POST" action="/urls/<%= url %>/delete">
-      <button type="submit">Delete</button>
+        <button type="submit">DELETE</button>
       </form>
     </li>
     <% } %>
@@ -18,4 +23,5 @@
   <a href="#"> Create new shortened link </a>
 </body>
 </html>
+
 
