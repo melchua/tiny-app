@@ -115,12 +115,20 @@ app.get("/u/:shortURL", (req, res) => {
 
 // DELETE
 app.post("/urls/:shortURL/delete", (req, res) => {
-  // 1. Find target you want to delete
+
+  // 1. a. Find target you want to delete
   targetURL = req.params.shortURL;
-  // 2. Delete (use object delete operator)
-  delete urlDatabase[targetURL];
-  // 3. Send response to redirect to the listing page
-  res.redirect("/urls");
+  // b. adding logic to this endpoint so that only the creator can delete
+  if (urlDatabase[targetURL].createdBy === req.cookies.user_id) {
+    // 2. Delete (use object delete operator)
+    delete urlDatabase[targetURL];
+    // 3. Send response to redirect to the listing page
+    res.redirect("/urls");
+    return;
+  } else {
+      res.status(400).send("400: Not allowed as you are not the owner");
+      return;
+  }
 
 });
 
