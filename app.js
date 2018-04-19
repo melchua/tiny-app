@@ -109,7 +109,6 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 app.post("/login", (req, res) => {
   // 1. set cookie named username to value submitted in login form (res.cookie)
-  // console.log(req.body);
   let username = req.body.username;
   res.cookie('username', username);
   // 2. redirect back to /urls
@@ -128,20 +127,39 @@ app.get("/register", (req, res) => {
 
 // REGISTER
 app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  // Add error checking logic
+  // a. If the e-mail or password are empty strings, send back a response with the 400 status code.
+  if (!email) {
+    res.status(400).send("Error 400: Email can't be empty.");
+  }
+  if (!password) {
+    res.status(400).send("Error 400: Password can't be empty.");
+  }
+  // b. If someone tries to register with an existing user's email, send back a response with the 400 status code.
+  for (var user in users) {
+    if (users[user].email === email) {
+      res.status(400).send("Error 400: Can't use same email address.");
+      return;
+    }
+  }
+
   // 1. generate random user id
   const randomUserID = generateRandomString(7);
   // 2. create a new user object
   const newUser = {
     id: randomUserID,
-    email: req.body.email,
-    password: req.body.password
+    email: email,
+    password: password
   };
+
+  console.log(newUser);
   // 3. append the new user object to the users object
   users[randomUserID] = newUser;
-  // 4. add a new user id cookie
-
-  // 5. redirect to /urls
-  res.redirect("/urls");
+  // 4. add a new user id cookie and redirect
+  let userid = randomUserID;
+  res.cookie('user_id', userid).redirect("/urls");
 });
 
 app.listen(PORT, () => {
