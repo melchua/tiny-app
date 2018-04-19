@@ -58,7 +58,13 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   let templateVars = { user_id: req.cookies.user_id};
-  res.render("urls_new", templateVars);
+  // only registeredf users can shorten urls
+  console.log(req.cookies.user_id);
+  if (!req.cookies.user_id) {
+    res.redirect("/login");
+  } else {
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.get("/urls/:id", (req, res) => {
