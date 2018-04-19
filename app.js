@@ -17,7 +17,7 @@ const urlDatabase = {
 const users = {
   "userRandomID": {
     id: "userRandomID",
-    email: "user@example.com",
+    email: "user1@example.com",
     password: "purple-monkey-dinosaur"
   },
  "user2RandomID": {
@@ -54,8 +54,6 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase, user_id: req.cookies.user_id };
   res.render("urls_index", templateVars);
-
-  console.log(templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
@@ -113,12 +111,40 @@ app.get("/login", (req, res) => {
   res.render("usr_login", templateVars);
 });
 
+// Updating login to use the new form data: email and password
+// 1. first find a user that matches "email" submitted
+// 2. if user with this email cannot be found, then return response with 403 error status code
+// 3. else compare with password from existing user's password
+// 4. If password and existing password do not match then response 403
+// 5. else (if both checks pass), then set user_id cookie with matching user's user-id and
+//    redirect to /.
+
+function authenticate(user, emailfeed, passwordfeed) {
+    // console.log(user,emailfeed,passwordfeed);
+    // console.log(users[user].email);
+    if (users[user].email !== emailfeed) {
+      return false;
+    } else if (users[user].password !== passwordfeed) {
+        return false;
+    }
+    else {
+      return true;
+    }
+}
+
 app.post("/login", (req, res) => {
-  // 1. set cookie named username to value submitted in login form (res.cookie)
-  let username = req.body.username;
-  res.cookie('username', username);
-  // 2. redirect back to /urls
-  res.redirect("/urls");
+  const email = req.body.email;
+  const password = req.body.password;
+
+  for (let user in users) {
+    if (authenticate(user, email, password)) {
+      console.log("All passed. authenticated");
+      res.cookie('user_id', users[user].id);
+      res.redirect("/");
+      return;
+    }
+  }
+  res.status(403).send("Error 403: Email or password incorrect");
 });
 
 app.post("/logout", (req, res) => {
@@ -127,7 +153,6 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  // let templateVars = { username: req.cookies['username']};
   res.render("usr_registration");
 });
 
@@ -160,7 +185,6 @@ app.post("/register", (req, res) => {
     password: password
   };
 
-  console.log(newUser);
   // 3. append the new user object to the users object
   users[randomUserID] = newUser;
   // 4. add a new user id cookie and redirect
