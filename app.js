@@ -9,11 +9,22 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.set("view engine", "ejs");
 
-
-
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+};
+
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
 };
 
 function generateRandomString(numberOfChars) {
@@ -64,7 +75,6 @@ app.post("/urls", (req, res) => {
   } else {
     urlDatabase[shortRandomURL] = 'http://' + req.body.longURL;
   }
-  console.log(urlDatabase);
   res.redirect(302, `/urls/${shortRandomURL}`);
 });
 
@@ -116,10 +126,22 @@ app.get("/register", (req, res) => {
   res.render("usr_registration");
 });
 
+// REGISTER
 app.post("/register", (req, res) => {
-  // 1.
+  // 1. generate random user id
+  const randomUserID = generateRandomString(7);
+  // 2. create a new user object
+  const newUser = {
+    id: randomUserID,
+    email: req.body.email,
+    password: req.body.password
+  };
+  // 3. append the new user object to the users object
+  users[randomUserID] = newUser;
+  // 4. add a new user id cookie
 
-  // 2. redirect to
+  // 5. redirect to /urls
+  res.redirect("/urls");
 });
 
 app.listen(PORT, () => {
