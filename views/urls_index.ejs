@@ -7,7 +7,7 @@
   <ul class="list-group">
     <% for (url in urls) { %>
     <li class="list-group-item">
-      <%= url %> &#8594; <a href="<%= urls[url] %>"><%= urls[url] %></a>
+      <%= url %> &#8594; <a href="<%= urls[url].longURL %>"><%= urls[url].longURL %></a>
 
       <form method="GET" action="/urls/<%= url %>">
         <button type="submit" class="btn btn-default">EDIT</button>
