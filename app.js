@@ -1,6 +1,6 @@
 // creating first express server with routing
 const express = require("express");
-const app = express(); // does this run it here?
+const app = express();
 const PORT = process.env.PORT || 8080; // default 8080
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -54,10 +54,6 @@ function authenticate(user, emailfeed, passwordfeed) {
     if (!bcrypt.compareSync(passwordfeed, hashedPass)) {
       return false;
     }
-
-    // console.log('hashed pass: ' + hashedPass);
-    // console.log('password feed: ' + passwordfeed);
-
     return true;
 }
 
