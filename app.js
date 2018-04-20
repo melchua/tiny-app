@@ -59,23 +59,24 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/urls", (req, res) => {
-  function IsLoggedIn(id) {
-    if (id) {
-      return true;
-    }
+function IsLoggedIn(id) {
+  if (id) {
+    return true;
   }
-  function urlsForUser(id) {
-    const urlDatabaseFiltered = {};
+}
 
-    for (var url in urlDatabase) {
-      console.log(id);
-      if (urlDatabase[url].createdBy === id) {
-        urlDatabaseFiltered[url] = (urlDatabase[url]);
-      }
+function urlsForUser(id) {
+  const urlDatabaseFiltered = {};
+
+  for (var url in urlDatabase) {
+    if (urlDatabase[url].createdBy === id) {
+      urlDatabaseFiltered[url] = (urlDatabase[url]);
     }
-    return urlDatabaseFiltered;
   }
+  return urlDatabaseFiltered;
+}
+
+app.get("/urls", (req, res) => {
 
   let templateVars = { urls: urlDatabase, theUser: users[req.cookies.user_id], urlsF: urlsForUser(req.cookies.user_id) };
 
@@ -98,9 +99,30 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { theUser: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL
-                         };
-  res.render("urls_show", templateVars);
+  let templateVars = { urlsF: urlsForUser(req.cookies.user_id), theUser: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL};
+
+  function checkIfinURLDatabase(url) {
+    console.log(urlDatabase[url].createdBy);
+    console.log(req.cookies.user_id);
+    if(urlDatabase[url].createdBy === req.cookies.user_id) {
+      console.log("we're in the true");
+      return true;
+    } else {
+      console.log("false");
+      return false;
+    }
+  }
+
+
+  if (!IsLoggedIn(req.cookies.user_id)) {
+    res.status(400).send("400: Please login first.");
+  } else if(!checkIfinURLDatabase(req.params.id)) {
+    res.status(400).send("400: Not allowed, you are not the owner");
+  } else {
+    res.render("urls_show", templateVars);
+  }
+
+
 });
 
 app.post("/urls", (req, res) => {
@@ -124,8 +146,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[shortURL][req.params.shortURL];
-  console.log(longURL);
+  let longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
