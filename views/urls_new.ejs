@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><% include partials/_header %></head>
-  <body style="font-size:20px; padding:50px;">
+  <head>
+    <% include partials/_bootstrap %>
+  </head>
+
+   <% include partials/_body %>
+   <% include partials/_header %>
 
     <form action="/urls" method="POST" style="margin:150px;">
       <label for="longURL">Enter a URL:</label>

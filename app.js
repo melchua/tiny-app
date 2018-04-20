@@ -44,12 +44,7 @@ const users = {
 
 
 function authenticate(user, emailfeed, passwordfeed) {
-
-
     const hashedPass = users[user].password;
-
-
-
     if (users[user].email !== emailfeed) {
       return false;
     }
@@ -91,30 +86,45 @@ function generateRandomString(numberOfChars) {
 /********************************* End Helper Functions ***************************/
 
 
-/********************************* GET Route Definitions **************************/
+/********************************* Route Definitions **************************/
 app.get("/", (req, res) => {
   res.end("You have reached Tiny URL!");
 });
 
-app.get("/hello", (req, res) => {
-  res.end("<html><body>Hello <b>World</b></body></html>\n");
-});
 
+/***** URL ROUTES *****/
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-
 app.get("/urls", (req, res) => {
-
   let templateVars = { urls: urlDatabase, theUser: users[req.session.user_id], urlsF: urlsForUser(req.session.user_id) };
-
   if (!IsLoggedIn(req.session.user_id)) {
     res.status(400).send("Please login first.");
   } else {
     res.render("urls_index", templateVars);
   }
 });
+
+app.post("/urls", (req, res) => {
+  var shortRandomURL = generateRandomString(6);
+  if (req.body.longURL.slice(0, 7) === 'http://') {
+    urlDatabase[shortRandomURL] = {
+      shortURL: shortRandomURL,
+      longURL: req.body.longURL,
+      createdBy: req.session.user_id
+    };
+  } else {
+    urlDatabase[shortRandomURL] = {
+      shortURL: shortRandomURL,
+      longURL: 'http://' + req.body.longURL,
+      createdBy: req.session.user_id
+    };
+  }
+
+  res.redirect(302, `/urls/${shortRandomURL}`);
+});
+
 
 app.get("/urls/new", (req, res) => {
   let templateVars = { theUser: users[req.session.user_id]};
@@ -149,50 +159,6 @@ app.get("/urls/:id", (req, res) => {
   } else {
     res.render("urls_show", templateVars);
   }
-
-
-});
-
-
-app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
-});
-
-// LOGIN
-app.get("/login", (req, res) => {
-  let templateVars = { theUser: users[req.session.user_id] };
-
-  res.render("usr_login", templateVars);
-});
-
-
-app.get("/register", (req, res) => {
-  res.render("usr_registration");
-});
-
-
-/********************************* END GET Route Definitions **************************/
-
-
-app.post("/urls", (req, res) => {
-  var shortRandomURL = generateRandomString(6);
-
-  if (req.body.longURL.slice(0, 7) === 'http://') {
-    urlDatabase[shortRandomURL] = {
-      shortURL: shortRandomURL,
-      longURL: req.body.longURL,
-      createdBy: req.session.user_id
-    };
-  } else {
-    urlDatabase[shortRandomURL] = {
-      shortURL: shortRandomURL,
-      longURL: 'http://' + req.body.longURL,
-      createdBy: req.session.user_id
-    };
-  }
-
-  res.redirect(302, `/urls/${shortRandomURL}`);
 });
 
 // DELETE
@@ -227,6 +193,14 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   }
 
 });
+/***** END URL ROUTES *****/
+
+/******* LOGIN LOGOUT ROUTES*****/
+app.get("/login", (req, res) => {
+  let templateVars = { theUser: users[req.session.user_id] };
+
+  res.render("usr_login", templateVars);
+});
 
 app.post("/login", (req, res) => {
   const email = req.body.email;
@@ -246,20 +220,25 @@ app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect("/urls");
 });
+/********* END LOGIN/LOGOUT ROUTES ********/
 
-// REGISTER
+/********* REGISTER ROUTES ******************/
+
+app.get("/register", (req, res) => {
+  res.render("usr_registration");
+});
+
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
   // Add error checking logic
-  // a. If the e-mail or password are empty strings, send back a response with the 400 status code.
   if (!email) {
     res.status(400).send("Error 400: Email can't be empty.");
   }
-  if (authenticate(req.session.user_id, email, password)) {
+  if (!password) {
     res.status(400).send("Error 400: Password can't be empty.");
   }
-  // b. If someone tries to register with an existing user's email, send back a response with the 400 status code.
   for (var user in users) {
     if (users[user].email === email) {
       res.status(400).send("Error 400: Can't use same email address.");
@@ -277,7 +256,14 @@ app.post("/register", (req, res) => {
   users[randomUserID] = newUser;
   let userid = randomUserID;
   req.session.user_id = users[user].id;
-  redirect("/urls");
+  res.redirect("/urls");
+});
+
+/********* END REGISTER ROUTES ******************/
+
+app.get("/u/:shortURL", (req, res) => {
+  let longURL = urlDatabase[req.params.shortURL].longURL;
+  res.redirect(longURL);
 });
 
 app.listen(PORT, () => {

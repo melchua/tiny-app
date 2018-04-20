@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <% include partials/_header %>
+  <% include partials/_bootstrap %>
+
 </head>
-<body>
+  <% include partials/_body %>
+  <% include partials/_header %>
+
   <ul class="list-group">
     <% for (url in urlsF) { %>
     <li class="list-group-item">
-      <%= url %> &#8594; <a href="<%= urlsF[url].longURL %>"><%= urlsF[url].longURL %></a>
+
+      <a href="/u/<%= url %>"><%= url %></a> &#8594;
+
+      <a href="<%= urlsF[url].longURL %>"><%= urlsF[url].longURL %></a>
 
       <form method="GET" action="/urls/<%= url %>">
         <button type="submit" class="btn btn-default">EDIT</button>

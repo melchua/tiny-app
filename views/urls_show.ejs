@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
+    <% include partials/_bootstrap %>
+  </head>
+  <% include partials/_body %>
   <% include partials/_header %>
-</head>
-<body>
-  <h1>SHORT:URL: <%= shortURL %> </h1>
+
+  <h1>SHORTURL: <a href="/u/<%= shortURL %>"><%= shortURL %></a> </h1>
 
   <form method="POST" action="/urls/<%= shortURL %>/edit">
     <label for="longURL">Long URL</label>
