@@ -4,6 +4,8 @@ const app = express(); // does this run it here?
 const PORT = process.env.PORT || 8080; // default 8080
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcrypt");
+
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -26,12 +28,12 @@ const users = {
   "jsmith": {
     id: "jsmith",
     email: "jsmith@example.com",
-    password: "purple"
+    password: bcrypt.hashSync("purple", 10)
   },
  "joefresh": {
     id: "joefresh",
     email: "joe@fresh.com",
-    password: "fresh"
+    password: bcrypt.hashSync("fresh", 10)
   }
 };
 
@@ -39,14 +41,24 @@ const users = {
 
 
 function authenticate(user, emailfeed, passwordfeed) {
+
+
+    const hashedPass = users[user].password;
+
+
+
     if (users[user].email !== emailfeed) {
       return false;
-    } else if (users[user].password !== passwordfeed) {
-        return false;
     }
-    else {
-      return true;
+
+    if (!bcrypt.compareSync(passwordfeed, hashedPass)) {
+      return false;
     }
+
+    // console.log('hashed pass: ' + hashedPass);
+    // console.log('password feed: ' + passwordfeed);
+
+    return true;
 }
 
 function IsLoggedIn(id) {
@@ -108,7 +120,6 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   let templateVars = { theUser: users[req.cookies.user_id]};
   // only registeredf users can shorten urls
-  console.log(req.cookies.user_id);
   if (!req.cookies.user_id) {
     res.redirect("/login");
   } else {
@@ -120,13 +131,10 @@ app.get("/urls/:id", (req, res) => {
   let templateVars = { urlsF: urlsForUser(req.cookies.user_id), theUser: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL};
 
   function checkIfinURLDatabase(url) {
-    console.log(urlDatabase[url].createdBy);
-    console.log(req.cookies.user_id);
+
     if(urlDatabase[url].createdBy === req.cookies.user_id) {
-      console.log("we're in the true");
       return true;
     } else {
-      console.log("false");
       return false;
     }
   }
@@ -152,9 +160,7 @@ app.get("/u/:shortURL", (req, res) => {
 // LOGIN
 app.get("/login", (req, res) => {
   let templateVars = { theUser: users[req.cookies.user_id] };
-  // console.log(templateVars);
-  console.log(req.cookies.user_id);
-  console.log(users[req.cookies.user_id]);
+
   res.render("usr_login", templateVars);
 });
 
@@ -183,7 +189,6 @@ app.post("/urls", (req, res) => {
     };
   }
 
-  console.log(urlDatabase);
   res.redirect(302, `/urls/${shortRandomURL}`);
 });
 
@@ -226,7 +231,6 @@ app.post("/login", (req, res) => {
 
   for (let user in users) {
     if (authenticate(user, email, password)) {
-      // console.log("All passed. authenticated");
       res.cookie('user_id', users[user].id);
       res.redirect("/");
       return;
@@ -249,7 +253,7 @@ app.post("/register", (req, res) => {
   if (!email) {
     res.status(400).send("Error 400: Email can't be empty.");
   }
-  if (!password) {
+  if (authenticate(req.cookies.user_id, email, password)) {
     res.status(400).send("Error 400: Password can't be empty.");
   }
   // b. If someone tries to register with an existing user's email, send back a response with the 400 status code.
