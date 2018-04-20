@@ -5,9 +5,9 @@
 </head>
 <body>
   <ul class="list-group">
-    <% for (url in urls) { %>
+    <% for (url in urlsF) { %>
     <li class="list-group-item">
-      <%= url %> &#8594; <a href="<%= urls[url].longURL %>"><%= urls[url].longURL %></a>
+      <%= url %> &#8594; <a href="<%= urlsF[url].longURL %>"><%= urlsF[url].longURL %></a>
 
       <form method="GET" action="/urls/<%= url %>">
         <button type="submit" class="btn btn-default">EDIT</button>
