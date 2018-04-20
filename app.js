@@ -3,12 +3,15 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default 8080
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
+const cookieSession = require("cookie-session");
 
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
 app.set("view engine", "ejs");
 
 const urlDatabase = {
@@ -104,9 +107,9 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/urls", (req, res) => {
 
-  let templateVars = { urls: urlDatabase, theUser: users[req.cookies.user_id], urlsF: urlsForUser(req.cookies.user_id) };
+  let templateVars = { urls: urlDatabase, theUser: users[req.session.user_id], urlsF: urlsForUser(req.session.user_id) };
 
-  if (!IsLoggedIn(req.cookies.user_id)) {
+  if (!IsLoggedIn(req.session.user_id)) {
     res.status(400).send("Please login first.");
   } else {
     res.render("urls_index", templateVars);
@@ -114,9 +117,9 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { theUser: users[req.cookies.user_id]};
+  let templateVars = { theUser: users[req.session.user_id]};
   // only registeredf users can shorten urls
-  if (!req.cookies.user_id) {
+  if (!req.session.user_id) {
     res.redirect("/login");
   } else {
     res.render("urls_new", templateVars);
@@ -124,11 +127,14 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { urlsF: urlsForUser(req.cookies.user_id), theUser: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL};
+  let templateVars = { urlsF: urlsForUser(req.session.user_id),
+                      theUser: users[req.session.user_id],
+                      shortURL: req.params.id,
+                      longURL: urlDatabase[req.params.id].longURL
+                    };
 
   function checkIfinURLDatabase(url) {
-
-    if(urlDatabase[url].createdBy === req.cookies.user_id) {
+    if(urlDatabase[url].createdBy === req.session.user_id) {
       return true;
     } else {
       return false;
@@ -136,7 +142,7 @@ app.get("/urls/:id", (req, res) => {
   }
 
 
-  if (!IsLoggedIn(req.cookies.user_id)) {
+  if (!IsLoggedIn(req.session.user_id)) {
     res.status(400).send("400: Please login first.");
   } else if(!checkIfinURLDatabase(req.params.id)) {
     res.status(400).send("400: Not allowed, you are not the owner");
@@ -155,7 +161,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 // LOGIN
 app.get("/login", (req, res) => {
-  let templateVars = { theUser: users[req.cookies.user_id] };
+  let templateVars = { theUser: users[req.session.user_id] };
 
   res.render("usr_login", templateVars);
 });
@@ -171,17 +177,18 @@ app.get("/register", (req, res) => {
 
 app.post("/urls", (req, res) => {
   var shortRandomURL = generateRandomString(6);
-  if (req.body.longURL.slice(7) === 'http://') {
+
+  if (req.body.longURL.slice(0, 7) === 'http://') {
     urlDatabase[shortRandomURL] = {
       shortURL: shortRandomURL,
       longURL: req.body.longURL,
-      createdBy: req.cookies.user_id
+      createdBy: req.session.user_id
     };
   } else {
     urlDatabase[shortRandomURL] = {
       shortURL: shortRandomURL,
       longURL: 'http://' + req.body.longURL,
-      createdBy: req.cookies.user_id
+      createdBy: req.session.user_id
     };
   }
 
@@ -194,7 +201,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   // 1. a. Find target you want to delete
   targetURL = req.params.shortURL;
   // b. adding logic to this endpoint so that only the creator can delete
-  if (urlDatabase[targetURL].createdBy === req.cookies.user_id) {
+  if (urlDatabase[targetURL].createdBy === req.session.user_id) {
     // 2. Delete (use object delete operator)
     delete urlDatabase[targetURL];
     // 3. Send response to redirect to the listing page
@@ -210,7 +217,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 // EDIT
 app.post("/urls/:shortURL/edit", (req, res) => {
   targetURL = req.params.shortURL;
-  if (urlDatabase[targetURL].createdBy === req.cookies.user_id) {
+  if (urlDatabase[targetURL].createdBy === req.session.user_id) {
     repURL = req.body.longURL;
     urlDatabase[targetURL].longURL = repURL;
     res.redirect("/urls");
@@ -227,7 +234,7 @@ app.post("/login", (req, res) => {
 
   for (let user in users) {
     if (authenticate(user, email, password)) {
-      res.cookie('user_id', users[user].id);
+      req.session.user_id = users[user].id;
       res.redirect("/");
       return;
     }
@@ -236,7 +243,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -249,7 +256,7 @@ app.post("/register", (req, res) => {
   if (!email) {
     res.status(400).send("Error 400: Email can't be empty.");
   }
-  if (authenticate(req.cookies.user_id, email, password)) {
+  if (authenticate(req.session.user_id, email, password)) {
     res.status(400).send("Error 400: Password can't be empty.");
   }
   // b. If someone tries to register with an existing user's email, send back a response with the 400 status code.
@@ -269,7 +276,8 @@ app.post("/register", (req, res) => {
 
   users[randomUserID] = newUser;
   let userid = randomUserID;
-  res.cookie('user_id', userid).redirect("/urls");
+  req.session.user_id = users[user].id;
+  redirect("/urls");
 });
 
 app.listen(PORT, () => {
