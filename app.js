@@ -9,12 +9,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.set("view engine", "ejs");
 
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
-
-
 const urlDatabase = {
   "b2xVn2": {
     shortURL: "b2xVn2",
@@ -24,10 +18,9 @@ const urlDatabase = {
   "9sm5xK": {
     shortURL: "9sm5xK",
     longURL: "http://www.google.com",
-    createdBy: "jsmith"
+    createdBy: "joefresh"
   }
 };
-
 
 const users = {
   "jsmith": {
@@ -55,7 +48,7 @@ function generateRandomString(numberOfChars) {
 
 
 app.get("/", (req, res) => {
-  res.end("Hello!");
+  res.end("You have reached Tiny URL!");
 });
 
 app.get("/hello", (req, res) => {
@@ -67,8 +60,30 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase, user_id: req.cookies.user_id };
-  res.render("urls_index", templateVars);
+  function IsLoggedIn(id) {
+    if (id) {
+      return true;
+    }
+  }
+  function urlsForUser(id) {
+    const urlDatabaseFiltered = {};
+
+    for (var url in urlDatabase) {
+      console.log(id);
+      if (urlDatabase[url].createdBy === id) {
+        urlDatabaseFiltered[url] = (urlDatabase[url]);
+      }
+    }
+    return urlDatabaseFiltered;
+  }
+
+  let templateVars = { urls: urlDatabase, theUser: users[req.cookies.user_id], urlsF: urlsForUser(req.cookies.user_id) };
+
+  if (!IsLoggedIn(req.cookies.user_id)) {
+    res.status(400).send("Please login first.");
+  } else {
+    res.render("urls_index", templateVars);
+  }
 });
 
 app.get("/urls/new", (req, res) => {
@@ -83,7 +98,8 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { user_id: req.cookies.user_id, shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+  let templateVars = { theUser: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL
+                         };
   res.render("urls_show", templateVars);
 });
 
@@ -134,29 +150,24 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // EDIT
 app.post("/urls/:shortURL/edit", (req, res) => {
-  // 1. Find target you want to edit
   targetURL = req.params.shortURL;
-  // 2. Save long URL from body
-  repURL = req.body.longURL;
-  // 3. replace
-  urlDatabase[targetURL].longURL = repURL;
-  // 4. Send response to redirect to the listing page
-  res.redirect("/urls");
+  if (urlDatabase[targetURL].createdBy === req.cookies.user_id) {
+    repURL = req.body.longURL;
+    urlDatabase[targetURL].longURL = repURL;
+    res.redirect("/urls");
+  } else {
+      res.status(400).send("400: Not allowed as you are not the owner");
+      return;
+  }
+
 });
+
 
 // LOGIN
 app.get("/login", (req, res) => {
   let templateVars = { user_id: req.cookies.user_id };
   res.render("usr_login", templateVars);
 });
-
-// Updating login to use the new form data: email and password
-// 1. first find a user that matches "email" submitted
-// 2. if user with this email cannot be found, then return response with 403 error status code
-// 3. else compare with password from existing user's password
-// 4. If password and existing password do not match then response 403
-// 5. else (if both checks pass), then set user_id cookie with matching user's user-id and
-//    redirect to /.
 
 function authenticate(user, emailfeed, passwordfeed) {
     if (users[user].email !== emailfeed) {
@@ -168,14 +179,13 @@ function authenticate(user, emailfeed, passwordfeed) {
       return true;
     }
 }
-
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
   for (let user in users) {
     if (authenticate(user, email, password)) {
-      console.log("All passed. authenticated");
+      // console.log("All passed. authenticated");
       res.cookie('user_id', users[user].id);
       res.redirect("/");
       return;
@@ -213,18 +223,14 @@ app.post("/register", (req, res) => {
     }
   }
 
-  // 1. generate random user id
   const randomUserID = generateRandomString(7);
-  // 2. create a new user object
   const newUser = {
     id: randomUserID,
     email: email,
     password: password
   };
 
-  // 3. append the new user object to the users object
   users[randomUserID] = newUser;
-  // 4. add a new user id cookie and redirect
   let userid = randomUserID;
   res.cookie('user_id', userid).redirect("/urls");
 });
