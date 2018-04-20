@@ -35,29 +35,19 @@ const users = {
   }
 };
 
-function generateRandomString(numberOfChars) {
-  var text = "";
-  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+/********************************* Helper functions ***************************/
 
-  for (var i = 0; i < numberOfChars; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
 
-  return `${text}`;
+function authenticate(user, emailfeed, passwordfeed) {
+    if (users[user].email !== emailfeed) {
+      return false;
+    } else if (users[user].password !== passwordfeed) {
+        return false;
+    }
+    else {
+      return true;
+    }
 }
-
-
-app.get("/", (req, res) => {
-  res.end("You have reached Tiny URL!");
-});
-
-app.get("/hello", (req, res) => {
-  res.end("<html><body>Hello <b>World</b></body></html>\n");
-});
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
 
 function IsLoggedIn(id) {
   if (id) {
@@ -75,6 +65,34 @@ function urlsForUser(id) {
   }
   return urlDatabaseFiltered;
 }
+
+function generateRandomString(numberOfChars) {
+  var text = "";
+  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+  for (var i = 0; i < numberOfChars; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+
+  return `${text}`;
+}
+
+/********************************* End Helper Functions ***************************/
+
+
+/********************************* GET Route Definitions **************************/
+app.get("/", (req, res) => {
+  res.end("You have reached Tiny URL!");
+});
+
+app.get("/hello", (req, res) => {
+  res.end("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
+
 
 app.get("/urls", (req, res) => {
 
@@ -125,6 +143,30 @@ app.get("/urls/:id", (req, res) => {
 
 });
 
+
+app.get("/u/:shortURL", (req, res) => {
+  let longURL = urlDatabase[req.params.shortURL].longURL;
+  res.redirect(longURL);
+});
+
+// LOGIN
+app.get("/login", (req, res) => {
+  let templateVars = { theUser: users[req.cookies.user_id] };
+  // console.log(templateVars);
+  console.log(req.cookies.user_id);
+  console.log(users[req.cookies.user_id]);
+  res.render("usr_login", templateVars);
+});
+
+
+app.get("/register", (req, res) => {
+  res.render("usr_registration");
+});
+
+
+/********************************* END GET Route Definitions **************************/
+
+
 app.post("/urls", (req, res) => {
   var shortRandomURL = generateRandomString(6);
   if (req.body.longURL.slice(7) === 'http://') {
@@ -143,11 +185,6 @@ app.post("/urls", (req, res) => {
 
   console.log(urlDatabase);
   res.redirect(302, `/urls/${shortRandomURL}`);
-});
-
-app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
 });
 
 // DELETE
@@ -183,26 +220,6 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 });
 
-
-// LOGIN
-app.get("/login", (req, res) => {
-  let templateVars = { theUser: users[req.cookies.user_id] };
-  // console.log(templateVars);
-  console.log(req.cookies.user_id);
-  console.log(users[req.cookies.user_id]);
-  res.render("usr_login", templateVars);
-});
-
-function authenticate(user, emailfeed, passwordfeed) {
-    if (users[user].email !== emailfeed) {
-      return false;
-    } else if (users[user].password !== passwordfeed) {
-        return false;
-    }
-    else {
-      return true;
-    }
-}
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -221,10 +238,6 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
   res.redirect("/urls");
-});
-
-app.get("/register", (req, res) => {
-  res.render("usr_registration");
 });
 
 // REGISTER
