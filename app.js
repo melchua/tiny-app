@@ -87,7 +87,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user_id: req.cookies.user_id};
+  let templateVars = { theUser: users[req.cookies.user_id]};
   // only registeredf users can shorten urls
   console.log(req.cookies.user_id);
   if (!req.cookies.user_id) {
@@ -165,7 +165,10 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 // LOGIN
 app.get("/login", (req, res) => {
-  let templateVars = { user_id: req.cookies.user_id };
+  let templateVars = { theUser: users[req.cookies.user_id] };
+  // console.log(templateVars);
+  console.log(req.cookies.user_id);
+  console.log(users[req.cookies.user_id]);
   res.render("usr_login", templateVars);
 });
 
