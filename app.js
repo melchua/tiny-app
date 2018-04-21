@@ -1,7 +1,6 @@
-// creating first express server with routing
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 8080; // default 8080
+const PORT = process.env.PORT || 8080;
 const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
 const cookieSession = require("cookie-session");
@@ -48,7 +47,6 @@ function authenticate(user, emailfeed, passwordfeed) {
     if (users[user].email !== emailfeed) {
       return false;
     }
-
     if (!bcrypt.compareSync(passwordfeed, hashedPass)) {
       return false;
     }
@@ -63,7 +61,6 @@ function IsLoggedIn(id) {
 
 function urlsForUser(id) {
   const urlDatabaseFiltered = {};
-
   for (var url in urlDatabase) {
     if (urlDatabase[url].createdBy === id) {
       urlDatabaseFiltered[url] = (urlDatabase[url]);
@@ -75,12 +72,22 @@ function urlsForUser(id) {
 function generateRandomString(numberOfChars) {
   var text = "";
   var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
   for (var i = 0; i < numberOfChars; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-
   return `${text}`;
+}
+
+function makeHTTP(address) {
+  // check if http:// or https://
+  // if missing, then add
+  let httpAddress = "";
+  if (address.slice(0,7) == "http://" || address.slice(0,8) == "https://") {
+    httpAddress = address;
+  } else {
+    httpAddress = "http://" + address;
+  }
+  return httpAddress;
 }
 
 /********************************* End Helper Functions ***************************/
@@ -88,7 +95,11 @@ function generateRandomString(numberOfChars) {
 
 /********************************* Route Definitions **************************/
 app.get("/", (req, res) => {
-  res.end("You have reached Tiny URL!");
+  if (IsLoggedIn(req.session.user_id)) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 
@@ -98,9 +109,13 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase, theUser: users[req.session.user_id], urlsF: urlsForUser(req.session.user_id) };
+  let templateVars = {
+    urls: urlDatabase,
+    theUser: users[req.session.user_id],
+    urlsF: urlsForUser(req.session.user_id)
+  };
   if (!IsLoggedIn(req.session.user_id)) {
-    res.status(400).send("Please login first.");
+    res.render("notloggedin", templateVars);
   } else {
     res.render("urls_index", templateVars);
   }
@@ -108,20 +123,12 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   var shortRandomURL = generateRandomString(6);
-  if (req.body.longURL.slice(0, 7) === 'http://') {
-    urlDatabase[shortRandomURL] = {
-      shortURL: shortRandomURL,
-      longURL: req.body.longURL,
-      createdBy: req.session.user_id
-    };
-  } else {
-    urlDatabase[shortRandomURL] = {
-      shortURL: shortRandomURL,
-      longURL: 'http://' + req.body.longURL,
-      createdBy: req.session.user_id
-    };
-  }
-
+  const httpAddress = makeHTTP(req.body.longURL);
+   urlDatabase[shortRandomURL] = {
+     shortURL: shortRandomURL,
+     longURL: httpAddress,
+     createdBy: req.session.user_id
+   };
   res.redirect(302, `/urls/${shortRandomURL}`);
 });
 
@@ -137,59 +144,58 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { urlsF: urlsForUser(req.session.user_id),
+
+    function checkIfinURLDatabase(url) {
+      if(urlDatabase[url] === undefined) {
+        res.status(404).send("404: Link doesn't exist");
+      }
+      if(urlDatabase[url].createdBy === req.session.user_id) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+  if (!IsLoggedIn(req.session.user_id)) {
+    res.render("notloggedin", {theUser: users[req.session.user_id]});
+  } else if(!urlDatabase[req.params.id]){
+    res.status(404).send('404: Link Doesnt Exist');
+  } else if(urlDatabase[req.params.id].createdBy !== req.session.user_id) {
+    res.status(403).send("403: Not allowed, you are not the owner");
+  } else {
+      let templateVars = { urlsF: urlsForUser(req.session.user_id),
                       theUser: users[req.session.user_id],
                       shortURL: req.params.id,
                       longURL: urlDatabase[req.params.id].longURL
                     };
-
-  function checkIfinURLDatabase(url) {
-    if(urlDatabase[url].createdBy === req.session.user_id) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-
-  if (!IsLoggedIn(req.session.user_id)) {
-    res.status(400).send("400: Please login first.");
-  } else if(!checkIfinURLDatabase(req.params.id)) {
-    res.status(400).send("400: Not allowed, you are not the owner");
-  } else {
     res.render("urls_show", templateVars);
   }
 });
 
 // DELETE
 app.post("/urls/:shortURL/delete", (req, res) => {
-
-  // 1. a. Find target you want to delete
   targetURL = req.params.shortURL;
-  // b. adding logic to this endpoint so that only the creator can delete
   if (urlDatabase[targetURL].createdBy === req.session.user_id) {
-    // 2. Delete (use object delete operator)
     delete urlDatabase[targetURL];
-    // 3. Send response to redirect to the listing page
     res.redirect("/urls");
     return;
   } else {
-      res.status(400).send("400: Not allowed as you are not the owner");
-      return;
+    res.status(400).send("400: Not allowed as you are not the owner");
+    return;
   }
-
 });
 
 // EDIT
 app.post("/urls/:shortURL/edit", (req, res) => {
   targetURL = req.params.shortURL;
+  const httpAddress = makeHTTP(req.body.longURL);
   if (urlDatabase[targetURL].createdBy === req.session.user_id) {
-    repURL = req.body.longURL;
+    repURL = httpAddress;
     urlDatabase[targetURL].longURL = repURL;
     res.redirect("/urls");
   } else {
-      res.status(400).send("400: Not allowed as you are not the owner");
-      return;
+    res.status(400).send("400: Not allowed as you are not the owner");
+    return;
   }
 
 });
@@ -197,15 +203,22 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 /******* LOGIN LOGOUT ROUTES*****/
 app.get("/login", (req, res) => {
-  let templateVars = { theUser: users[req.session.user_id] };
+  let templateVars = {
+    urls: urlDatabase,
+    theUser: users[req.session.user_id],
+    urlsF: urlsForUser(req.session.user_id)
+   };
 
-  res.render("usr_login", templateVars);
+  if (!IsLoggedIn(req.session.user_id)) {
+    res.render("usr_login", templateVars);
+  } else {
+    res.render("urls_index", templateVars);
+  }
 });
 
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-
   for (let user in users) {
     if (authenticate(user, email, password)) {
       req.session.user_id = users[user].id;
@@ -225,20 +238,34 @@ app.post("/logout", (req, res) => {
 /********* REGISTER ROUTES ******************/
 
 app.get("/register", (req, res) => {
-  res.render("usr_registration");
+
+
+  if (!IsLoggedIn(req.session.user_id)) {
+    res.render("usr_registration");
+  } else {
+    let templateVars = {
+    urls: urlDatabase,
+    theUser: users[req.session.user_id],
+    urlsF: urlsForUser(req.session.user_id)
+    };
+    res.render("urls_index", templateVars);
+  }
+
 });
 
 app.post("/register", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
-  // Add error checking logic
-  if (!email) {
+  if (!req.body.email) {
     res.status(400).send("Error 400: Email can't be empty.");
+    return;
   }
-  if (!password) {
+  if (!req.body.password) {
     res.status(400).send("Error 400: Password can't be empty.");
+    return;
   }
+
+  const email = req.body.email;
+  const password = bcrypt.hashSync(req.body.password, 10);
+
   for (var user in users) {
     if (users[user].email === email) {
       res.status(400).send("Error 400: Can't use same email address.");
@@ -255,15 +282,20 @@ app.post("/register", (req, res) => {
 
   users[randomUserID] = newUser;
   let userid = randomUserID;
-  req.session.user_id = users[user].id;
+  req.session.user_id = users[randomUserID].id;
   res.redirect("/urls");
 });
 
 /********* END REGISTER ROUTES ******************/
 
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
+  let url = urlDatabase[req.params.shortURL];
+  if (url === undefined) {
+    res.status(400).send("Link does not exist");
+    return;
+  }
+
+  res.redirect(url.longURL);
 });
 
 app.listen(PORT, () => {
