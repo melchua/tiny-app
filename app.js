@@ -299,5 +299,5 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on ${PORT}!`);
+  console.log(`Listening on ${PORT}!`);
 });
